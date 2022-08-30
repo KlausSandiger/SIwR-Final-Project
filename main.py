@@ -22,6 +22,24 @@ def CoordinatesConversion(coordinates_as_str):
 
     return Converted2Int
 
+def GetBBoxesFromFrames(frame,number,coordinates):
+
+    cv2.imshow("test",frame)
+    objects = []
+    for i in range(int(number)):
+        x = coordinates[i][0]
+        y = coordinates[i][1]
+        width = coordinates[i][2]
+        height = coordinates[i][3]
+
+        cropped = frame[y:y+height,x:x+width]
+        objects.append(cropped)
+    for i in range(int(number)):
+        cv2.imshow('crop',objects[i])
+        print("xd")
+        cv2.waitKey(0)
+
+
 def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
     path_to_images = directory_path + "/frames/"
@@ -56,19 +74,20 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
         print(coordinates)
 
         img = cv2.imread(files + name)
-        cv2.imshow("org",img)
 
         if prev_name != 0:
             prev_img = cv2.imread(files + prev_name)
-            cv2.imshow("prev", prev_img)
 
         prev_name = name
         prev_number_of_bb = number_of_bb
 
-        CoordinatesConversion(coordinates)
+        coordinates_int = CoordinatesConversion(coordinates)
+        current_bboxes = []
+        current_bboxes = GetBBoxesFromFrames(img,number_of_bb,coordinates_int)
+
+        print(type(current_bboxes))
 
 
-        cv2.waitKey(10000)
 
 if __name__ == '__main__':
 
