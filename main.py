@@ -1,22 +1,30 @@
 import getopt
 import os.path
 import sys
+import time
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def CalcHistograms(objects):
-    print("x")
     Histograms = []
     for i in range(len(objects)):
         hist = cv2.calcHist(objects[i],[0],None, [256],[0,255])
         cv2.normalize(hist,hist,0,255,cv2.NORM_MINMAX)
         Histograms.append(hist)
-        print("D")
-    print(len(Histograms))
 
+    return Histograms
 
+def CompHistograms(hist1,hist2):
+
+    for i in range(len(hist1)):
+        for j in range(len(hist2)):
+            comparison = cv2.compareHist(hist1[i],hist2[j],cv2.HISTCMP_CORREL)
+            print("Comparing " + str(i+1) + " histogram of current frame with "+ str(j+1) + " histogram of previous frame")
+            print(comparison)
+    time.sleep(1)
 
 def CoordinatesConversion(coordinates_as_str):
 
@@ -55,10 +63,10 @@ def GetBBoxesFromFrames(frame,number,coordinates):
 
 
 
-    #cv2.imshow("test",frame)
-    #for i in range(int(number)):
-    #    cv2.imshow('crop',objects[i])
-    #    cv2.waitKey(100)
+    cv2.imshow("test",frame)
+    for i in range(int(number)):
+        cv2.imshow('crop',objects[i])
+        cv2.waitKey(0)
 
     return objects
 
@@ -74,6 +82,7 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
     prev_name = 0
     prev_number_of_bb = 0
+    previous_bboxes = []
     prev_coordinates = []
 
     while True:
@@ -110,7 +119,11 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
         current_bboxes = []
         current_bboxes = GetBBoxesFromFrames(img,number_of_bb,coordinates_int)
 
-        CalcHistograms(current_bboxes)
+
+        hist = CalcHistograms(current_bboxes)
+        if previous_bboxes != 0:
+            prev_hist = CalcHistograms(previous_bboxes)
+            CompHistograms(hist,prev_hist)
 
 
 if __name__ == '__main__':
