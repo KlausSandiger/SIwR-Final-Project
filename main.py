@@ -26,18 +26,22 @@ def GetBBoxesFromFrames(frame,number,coordinates):
 
     cv2.imshow("test",frame)
     objects = []
+    shrink = 0.2
     for i in range(int(number)):
         x = coordinates[i][0]
         y = coordinates[i][1]
         width = coordinates[i][2]
+        widths = int(coordinates[i][2] * shrink)
         height = coordinates[i][3]
+        heights = int(coordinates[i][3] * shrink)
 
-        cropped = frame[y:y+height,x:x+width]
+        cropped = frame[y+heights:y+height-heights,x+widths:x+width-widths]
+        cropped = cv2.resize(cropped,(360,360))
         objects.append(cropped)
     for i in range(int(number)):
-        cv2.imshow('crop',objects[i])
         print("xd")
-        cv2.waitKey(0)
+        cv2.imshow('crop',objects[i])
+        cv2.waitKey(1)
 
 
 def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
@@ -70,8 +74,6 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
             position = file.readline().rstrip("\n").split()
             coordinates.append(position)
-        #convert to int
-        print(coordinates)
 
         img = cv2.imread(files + name)
 
@@ -85,7 +87,6 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
         current_bboxes = []
         current_bboxes = GetBBoxesFromFrames(img,number_of_bb,coordinates_int)
 
-        print(type(current_bboxes))
 
 
 
