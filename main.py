@@ -2,11 +2,9 @@ import getopt
 import os.path
 import sys
 import time
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 def CalcHistograms(objects):
     Histograms = []
@@ -19,12 +17,20 @@ def CalcHistograms(objects):
 
 def CompHistograms(hist1,hist2):
 
+    perfect_match = [-1,-1,-1,-1,-1,-1]
+    hist_matched = [0,0,0,0,0,0]
     for i in range(len(hist1)):
         for j in range(len(hist2)):
             comparison = cv2.compareHist(hist1[i],hist2[j],cv2.HISTCMP_CORREL)
             print("Comparing " + str(i+1) + " histogram of current frame with "+ str(j+1) + " histogram of previous frame")
             print(comparison)
+            if comparison > perfect_match[i]:
+                perfect_match[i] = comparison
+                hist_matched[i] = j+1
+    print(perfect_match)
+    print(hist_matched)
     time.sleep(1)
+
 
 def CoordinatesConversion(coordinates_as_str):
 
@@ -61,12 +67,10 @@ def GetBBoxesFromFrames(frame,number,coordinates):
         cropped = cv2.resize(cropped,(360,360))
         objects.append(cropped)
 
-
-
     cv2.imshow("test",frame)
     for i in range(int(number)):
         cv2.imshow('crop',objects[i])
-        cv2.waitKey(0)
+        cv2.waitKey(1)
 
     return objects
 
@@ -119,12 +123,10 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
         current_bboxes = []
         current_bboxes = GetBBoxesFromFrames(img,number_of_bb,coordinates_int)
 
-
         hist = CalcHistograms(current_bboxes)
         if previous_bboxes != 0:
             prev_hist = CalcHistograms(previous_bboxes)
             CompHistograms(hist,prev_hist)
-
 
 if __name__ == '__main__':
 
