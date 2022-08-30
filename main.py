@@ -3,6 +3,20 @@ import os.path
 import sys
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+
+
+def CalcHistograms(objects):
+    print("x")
+    Histograms = []
+    for i in range(len(objects)):
+        hist = cv2.calcHist(objects[i],[0],None, [256],[0,255])
+        cv2.normalize(hist,hist,0,255,cv2.NORM_MINMAX)
+        Histograms.append(hist)
+        print("D")
+    print(len(Histograms))
+
+
 
 def CoordinatesConversion(coordinates_as_str):
 
@@ -24,7 +38,7 @@ def CoordinatesConversion(coordinates_as_str):
 
 def GetBBoxesFromFrames(frame,number,coordinates):
 
-    cv2.imshow("test",frame)
+
     objects = []
     shrink = 0.2
     for i in range(int(number)):
@@ -38,11 +52,15 @@ def GetBBoxesFromFrames(frame,number,coordinates):
         cropped = frame[y+heights:y+height-heights,x+widths:x+width-widths]
         cropped = cv2.resize(cropped,(360,360))
         objects.append(cropped)
-    for i in range(int(number)):
-        print("xd")
-        cv2.imshow('crop',objects[i])
-        cv2.waitKey(1)
 
+
+
+    #cv2.imshow("test",frame)
+    #for i in range(int(number)):
+    #    cv2.imshow('crop',objects[i])
+    #    cv2.waitKey(100)
+
+    return objects
 
 def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
@@ -56,6 +74,7 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
     prev_name = 0
     prev_number_of_bb = 0
+    prev_coordinates = []
 
     while True:
 
@@ -79,15 +98,19 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
         if prev_name != 0:
             prev_img = cv2.imread(files + prev_name)
+            previous_bboxes = GetBBoxesFromFrames(prev_img, prev_number_of_bb, prev_coordinates_int)
+
 
         prev_name = name
         prev_number_of_bb = number_of_bb
+        prev_coordinates = coordinates
 
         coordinates_int = CoordinatesConversion(coordinates)
+        prev_coordinates_int = CoordinatesConversion(prev_coordinates)
         current_bboxes = []
         current_bboxes = GetBBoxesFromFrames(img,number_of_bb,coordinates_int)
 
-
+        CalcHistograms(current_bboxes)
 
 
 if __name__ == '__main__':
@@ -112,9 +135,5 @@ if __name__ == '__main__':
         sys.exit(1)
 
     SetUpFiles(image_directory_name)
-
-
-
-    array_of_images = []
 
     results = {}
