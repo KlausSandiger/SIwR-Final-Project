@@ -24,9 +24,11 @@ def CalcHistograms(objects):
 
 
 def CompHistograms(hist1, hist2):
-    perfect_match = [-1, -1, -1, -1, -1, -1]
-    hist_matched = [0, 0, 0, 0, 0, 0]
+    mean_j = []
+    sum = 0
+
     for i in range(len(hist1)):
+        sum = 0
         for j in range(len(hist2)):
             comparison1 = cv2.compareHist(hist1[i][0], hist2[j][0], cv2.HISTCMP_BHATTACHARYYA)
             comparison2 = cv2.compareHist(hist1[i][1], hist2[j][1], cv2.HISTCMP_BHATTACHARYYA)
@@ -35,12 +37,15 @@ def CompHistograms(hist1, hist2):
             print("Comparing " + str(i + 1) + " histogram of current frame with " + str(
                 j + 1) + " histogram of previous frame")
             comparison = 1 - comparison
-            print(comparison)
-            if comparison > perfect_match[i]:
-                perfect_match[i] = comparison
-                hist_matched[i] = j + 1
-    print(perfect_match)
-    print(hist_matched)
+            sum += comparison
+
+        if len(hist2) != 0:
+            sum = sum / len(hist2)
+        mean_j.append(sum)
+
+    print("sum j" + str(mean_j))
+
+    return mean_j
 
 
 def CoordinatesConversion(coordinates_as_str):
@@ -160,5 +165,3 @@ if __name__ == '__main__':
     SetUpFiles(image_directory_name)
 
     print("End")
-
-    results = {}
