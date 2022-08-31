@@ -6,34 +6,44 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def CalcHistograms(objects):
     Histograms = []
     for i in range(len(objects)):
-        hist = cv2.calcHist(objects[i],[0],None, [256],[0,255])
-        cv2.normalize(hist,hist,0,255,cv2.NORM_MINMAX)
-        Histograms.append(hist)
+        hist1 = cv2.calcHist(objects[i][:, :, 0], [0], None, [256], [1, 254])
+        hist2 = cv2.calcHist(objects[i][:, :, 1], [0], None, [256], [1, 254])
+        hist3 = cv2.calcHist(objects[i][:, :, 2], [0], None, [256], [1, 254])
+
+        cv2.normalize(hist1, hist1, 0, 255, cv2.NORM_MINMAX)
+        cv2.normalize(hist2, hist2, 0, 255, cv2.NORM_MINMAX)
+        cv2.normalize(hist3, hist3, 0, 255, cv2.NORM_MINMAX)
+
+        Histograms.append([hist1, hist2, hist3])
 
     return Histograms
 
-def CompHistograms(hist1,hist2):
 
-    perfect_match = [-1,-1,-1,-1,-1,-1]
-    hist_matched = [0,0,0,0,0,0]
+def CompHistograms(hist1, hist2):
+    perfect_match = [-1, -1, -1, -1, -1, -1]
+    hist_matched = [0, 0, 0, 0, 0, 0]
     for i in range(len(hist1)):
         for j in range(len(hist2)):
-            comparison = cv2.compareHist(hist1[i],hist2[j],cv2.HISTCMP_CORREL)
-            print("Comparing " + str(i+1) + " histogram of current frame with "+ str(j+1) + " histogram of previous frame")
+            comparison1 = cv2.compareHist(hist1[i][0], hist2[j][0], cv2.HISTCMP_BHATTACHARYYA)
+            comparison2 = cv2.compareHist(hist1[i][1], hist2[j][1], cv2.HISTCMP_BHATTACHARYYA)
+            comparison3 = cv2.compareHist(hist1[i][2], hist2[j][2], cv2.HISTCMP_BHATTACHARYYA)
+            comparison = (comparison1 + comparison2 + comparison3) * 0.33
+            print("Comparing " + str(i + 1) + " histogram of current frame with " + str(
+                j + 1) + " histogram of previous frame")
+            comparison = 1 - comparison
             print(comparison)
             if comparison > perfect_match[i]:
                 perfect_match[i] = comparison
-                hist_matched[i] = j+1
+                hist_matched[i] = j + 1
     print(perfect_match)
     print(hist_matched)
-    time.sleep(1)
 
 
 def CoordinatesConversion(coordinates_as_str):
-
     dim = int(len(coordinates_as_str))
     coordinates_as_int = []
     for i in range(int(len(coordinates_as_str))):
@@ -46,13 +56,12 @@ def CoordinatesConversion(coordinates_as_str):
         coordinates_as_int.append(w)
         coordinates_as_int.append(h)
 
-    Converted2Int = np.reshape(coordinates_as_int,(dim,4))
+    Converted2Int = np.reshape(coordinates_as_int, (dim, 4))
 
     return Converted2Int
 
-def GetBBoxesFromFrames(frame,number,coordinates):
 
-
+def GetBBoxesFromFrames(frame, number, coordinates):
     objects = []
     shrink = 0.2
     for i in range(int(number)):
@@ -63,19 +72,19 @@ def GetBBoxesFromFrames(frame,number,coordinates):
         height = coordinates[i][3]
         heights = int(coordinates[i][3] * shrink)
 
-        cropped = frame[y+heights:y+height-heights,x+widths:x+width-widths]
-        cropped = cv2.resize(cropped,(360,360))
+        cropped = frame[y + heights:y + height - heights, x + widths:x + width - widths]
+        cropped = cv2.resize(cropped, (360, 360))
         objects.append(cropped)
 
-    cv2.imshow("test",frame)
+    cv2.imshow("test", frame)
     for i in range(int(number)):
-        cv2.imshow('crop',objects[i])
+        cv2.imshow('crop', objects[i])
         cv2.waitKey(1)
 
     return objects
 
-def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
+def SetUpFiles(directory_path="", description_file="bboxes.txt"):
     path_to_images = directory_path + "/frames/"
     path_to_description = directory_path + "/" + description_file
 
@@ -103,7 +112,6 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
         number_of_bb = file.readline().rstrip("\n")
         print(number_of_bb)
         for number in range(int(number_of_bb)):
-
             position = file.readline().rstrip("\n").split()
             coordinates.append(position)
 
@@ -113,7 +121,6 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
             prev_img = cv2.imread(files + prev_name)
             previous_bboxes = GetBBoxesFromFrames(prev_img, prev_number_of_bb, prev_coordinates_int)
 
-
         prev_name = name
         prev_number_of_bb = number_of_bb
         prev_coordinates = coordinates
@@ -121,24 +128,25 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
         coordinates_int = CoordinatesConversion(coordinates)
         prev_coordinates_int = CoordinatesConversion(prev_coordinates)
         current_bboxes = []
-        current_bboxes = GetBBoxesFromFrames(img,number_of_bb,coordinates_int)
+        current_bboxes = GetBBoxesFromFrames(img, number_of_bb, coordinates_int)
 
         hist = CalcHistograms(current_bboxes)
         if previous_bboxes != 0:
             prev_hist = CalcHistograms(previous_bboxes)
-            CompHistograms(hist,prev_hist)
+            CompHistograms(hist, prev_hist)
+
 
 if __name__ == '__main__':
 
-# Empty string for directory name
+    # Empty string for directory name
     image_directory_name = " "
 
-# Input reading
+    # Input reading
     arg = sys.argv[1:]
     try:
         if len(arg) == 1:
             if os.path.exists(arg[0]) and os.path.isdir(arg[0]):
-# If given directory is correct data is saved to a variable
+                # If given directory is correct data is saved to a variable
                 image_directory_name = arg[0]
             else:
                 print("Path error")
@@ -150,5 +158,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     SetUpFiles(image_directory_name)
+
+    print("End")
 
     results = {}
