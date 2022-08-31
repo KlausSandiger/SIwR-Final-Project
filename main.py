@@ -1,4 +1,5 @@
 import getopt
+import math
 import os.path
 import sys
 import time
@@ -6,36 +7,34 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def CalcHistograms(objects):
     Histograms = []
     for i in range(len(objects)):
-        hist1 = cv2.calcHist(objects[i][:, :, 0], [0], None, [256], [1, 254])
-        hist2 = cv2.calcHist(objects[i][:, :, 1], [0], None, [256], [1, 254])
-        hist3 = cv2.calcHist(objects[i][:, :, 2], [0], None, [256], [1, 254])
+        hist1 = cv2.calcHist(objects[i][:,:,0],[0],None, [256],[1,254])
+        hist2 = cv2.calcHist(objects[i][:,:,1],[0],None, [256],[1,254])
+        hist3 = cv2.calcHist(objects[i][:,:,2],[0],None, [256],[1,254])
 
-        cv2.normalize(hist1, hist1, 0, 255, cv2.NORM_MINMAX)
-        cv2.normalize(hist2, hist2, 0, 255, cv2.NORM_MINMAX)
-        cv2.normalize(hist3, hist3, 0, 255, cv2.NORM_MINMAX)
+        cv2.normalize(hist1,hist1,0,255,cv2.NORM_MINMAX)
+        cv2.normalize(hist2,hist2,0,255,cv2.NORM_MINMAX)
+        cv2.normalize(hist3,hist3,0,255,cv2.NORM_MINMAX)
 
-        Histograms.append([hist1, hist2, hist3])
+        Histograms.append([hist1,hist2,hist3])
 
     return Histograms
 
+def CompHistograms(hist1,hist2):
 
-def CompHistograms(hist1, hist2):
     mean_j = []
     sum = 0
 
     for i in range(len(hist1)):
         sum = 0
         for j in range(len(hist2)):
-            comparison1 = cv2.compareHist(hist1[i][0], hist2[j][0], cv2.HISTCMP_BHATTACHARYYA)
-            comparison2 = cv2.compareHist(hist1[i][1], hist2[j][1], cv2.HISTCMP_BHATTACHARYYA)
-            comparison3 = cv2.compareHist(hist1[i][2], hist2[j][2], cv2.HISTCMP_BHATTACHARYYA)
-            comparison = (comparison1 + comparison2 + comparison3) * 0.33
-            print("Comparing " + str(i + 1) + " histogram of current frame with " + str(
-                j + 1) + " histogram of previous frame")
+            comparison1 = cv2.compareHist(hist1[i][0],hist2[j][0],cv2.HISTCMP_BHATTACHARYYA)
+            comparison2 = cv2.compareHist(hist1[i][1],hist2[j][1],cv2.HISTCMP_BHATTACHARYYA)
+            comparison3 = cv2.compareHist(hist1[i][2],hist2[j][2],cv2.HISTCMP_BHATTACHARYYA)
+            comparison = (comparison1 + comparison2 + comparison3)*0.33
+            print("Comparing " + str(i+1) + " histogram of current frame with "+ str(j+1) + " histogram of previous frame")
             comparison = 1 - comparison
             sum += comparison
 
@@ -47,8 +46,44 @@ def CompHistograms(hist1, hist2):
 
     return mean_j
 
+def CompShift(objects1,objects2):
+
+    print("compshift")
+
+    distances = []
+    single_distance = 0
+
+    currentx = 0
+    currenty = 0
+    currentw = 0
+    currenth = 0
+
+    prevx = 0
+    prevy = 0
+    prevw = 0
+    prevh = 0
+
+    for i in range(len(objects1)):
+        currentx = objects1[i][0]
+        currenty = objects1[i][1]
+        currentw = objects1[i][2]
+        currenth = objects1[i][3]
+
+        current_middle = [currentx + 0.5*currentw,currenty + 0.5*currenth]
+        for j in range(len(objects2)):
+            prevx = objects1[j][0]
+            prevy = objects1[j][1]
+            prevw = objects1[j][2]
+            prevh = objects1[j][3]
+
+            prev_middle = [prevx + 0.5 * prevw, prevy + 0.5 * prevh]
+
+            single_distance = math.sqrt(math.pow(current_middle[0] + prev_middle[0],2)) + math.sqrt(math.pow(current_middle[1] + prev_middle[1],2))
+            distances.append(single_distance)
+    print(distances)
 
 def CoordinatesConversion(coordinates_as_str):
+
     dim = int(len(coordinates_as_str))
     coordinates_as_int = []
     for i in range(int(len(coordinates_as_str))):
@@ -61,12 +96,13 @@ def CoordinatesConversion(coordinates_as_str):
         coordinates_as_int.append(w)
         coordinates_as_int.append(h)
 
-    Converted2Int = np.reshape(coordinates_as_int, (dim, 4))
+    Converted2Int = np.reshape(coordinates_as_int,(dim,4))
 
     return Converted2Int
 
+def GetBBoxesFromFrames(frame,number,coordinates):
 
-def GetBBoxesFromFrames(frame, number, coordinates):
+
     objects = []
     shrink = 0.2
     for i in range(int(number)):
@@ -77,19 +113,19 @@ def GetBBoxesFromFrames(frame, number, coordinates):
         height = coordinates[i][3]
         heights = int(coordinates[i][3] * shrink)
 
-        cropped = frame[y + heights:y + height - heights, x + widths:x + width - widths]
-        cropped = cv2.resize(cropped, (360, 360))
+        cropped = frame[y+heights:y+height-heights,x+widths:x+width-widths]
+        cropped = cv2.resize(cropped,(360,360))
         objects.append(cropped)
 
-    cv2.imshow("test", frame)
+    cv2.imshow("test",frame)
     for i in range(int(number)):
-        cv2.imshow('crop', objects[i])
+        cv2.imshow('crop',objects[i])
         cv2.waitKey(1)
 
     return objects
 
+def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
 
-def SetUpFiles(directory_path="", description_file="bboxes.txt"):
     path_to_images = directory_path + "/frames/"
     path_to_description = directory_path + "/" + description_file
 
@@ -117,6 +153,7 @@ def SetUpFiles(directory_path="", description_file="bboxes.txt"):
         number_of_bb = file.readline().rstrip("\n")
         print(number_of_bb)
         for number in range(int(number_of_bb)):
+
             position = file.readline().rstrip("\n").split()
             coordinates.append(position)
 
@@ -133,25 +170,31 @@ def SetUpFiles(directory_path="", description_file="bboxes.txt"):
         coordinates_int = CoordinatesConversion(coordinates)
         prev_coordinates_int = CoordinatesConversion(prev_coordinates)
         current_bboxes = []
-        current_bboxes = GetBBoxesFromFrames(img, number_of_bb, coordinates_int)
+        current_bboxes = GetBBoxesFromFrames(img,number_of_bb,coordinates_int)
 
         hist = CalcHistograms(current_bboxes)
         if previous_bboxes != 0:
             prev_hist = CalcHistograms(previous_bboxes)
-            CompHistograms(hist, prev_hist)
+            CompHistograms(hist,prev_hist)
+            CompShift(coordinates_int,prev_coordinates_int)
+
+
+
 
 
 if __name__ == '__main__':
 
-    # Empty string for directory name
+# Empty string for directory name
     image_directory_name = " "
 
-    # Input reading
+
+
+# Input reading
     arg = sys.argv[1:]
     try:
         if len(arg) == 1:
             if os.path.exists(arg[0]) and os.path.isdir(arg[0]):
-                # If given directory is correct data is saved to a variable
+# If given directory is correct data is saved to a variable
                 image_directory_name = arg[0]
             else:
                 print("Path error")
