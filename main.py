@@ -1,17 +1,16 @@
 import getopt
-import math
 import os.path
 import sys
-import time
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 from pgmpy.models import FactorGraph
 from pgmpy.factors.discrete import DiscreteFactor
 from pgmpy.inference import BeliefPropagation
 from itertools import combinations
+from collections import OrderedDict
 
 def CalcHistograms(objects):
+
     Histograms = []
     for i in range(len(objects)):
         hist1 = cv2.calcHist(objects[i][:,:,0],[0],None, [256],[1,254])
@@ -40,45 +39,11 @@ def CompHistograms(hist1,hist2,G):
             comparison = 1 - comparison
             mean_j.append(comparison)
 
-        tmp = DiscreteFactor([str(i)], [len(hist2) + 1], [[0.3] + mean_j])
+        tmp = DiscreteFactor([str(i)], [len(hist2) + 1], [[0.29] + mean_j])
         G.add_factors(tmp)
         G.add_edge(str(i),tmp)
 
     return mean_j
-
-def CompShift(objects1,objects2):
-
-
-    distances = []
-    single_distance = 0
-
-    currentx = 0
-    currenty = 0
-    currentw = 0
-    currenth = 0
-
-    prevx = 0
-    prevy = 0
-    prevw = 0
-    prevh = 0
-
-    for i in range(len(objects1)):
-        currentx = objects1[i][0]
-        currenty = objects1[i][1]
-        currentw = objects1[i][2]
-        currenth = objects1[i][3]
-
-        current_middle = [currentx + 0.5*currentw,currenty + 0.5*currenth]
-        for j in range(len(objects2)):
-            prevx = objects1[j][0]
-            prevy = objects1[j][1]
-            prevw = objects1[j][2]
-            prevh = objects1[j][3]
-
-            prev_middle = [prevx + 0.5 * prevw, prevy + 0.5 * prevh]
-
-            single_distance = math.sqrt(math.pow(current_middle[0] + prev_middle[0],2)) + math.sqrt(math.pow(current_middle[1] + prev_middle[1],2))
-            distances.append(single_distance)
 
 def CoordinatesConversion(coordinates_as_str):
 
@@ -100,9 +65,8 @@ def CoordinatesConversion(coordinates_as_str):
 
 def GetBBoxesFromFrames(frame,number,coordinates):
 
-
     objects = []
-    shrink = 0.2
+    shrink = 0.3
     for i in range(int(number)):
         x = coordinates[i][0]
         y = coordinates[i][1]
@@ -131,6 +95,7 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
     prev_number_of_bb = 0
     previous_bboxes = []
     prev_coordinates = []
+    emergency_situation = 0
 
     while True:
 
@@ -142,14 +107,28 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
             break
         number_of_bb = file.readline().rstrip("\n")
 
-        for number in range(int(number_of_bb)):
+        if number_of_bb == "0":
+            print('')
+            emergency_situation = 1
+            continue
 
+        for number in range(int(number_of_bb)):
             G.add_node(str(number))
             position = file.readline().rstrip("\n").split()
             coordinates.append(position)
-
         img = cv2.imread(files + name)
 
+        if emergency_situation == 1:
+            emergency_situation = 0
+            solution = []
+            for i in range(int(number_of_bb)):
+                solution.append(-1)
+                i += 1
+            print(*solution,sep = ' ')
+            prev_name = name
+            prev_number_of_bb = number_of_bb
+            prev_coordinates = coordinates
+            continue
 
         if prev_name != 0:
             prev_img = cv2.imread(files + prev_name)
@@ -169,7 +148,6 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
         if previous_bboxes != 0:
             prev_hist = CalcHistograms(previous_bboxes)
             CompHistograms(hist,prev_hist,G)
-            # CompShift(coordinates_int,prev_coordinates_int)
 
             matrix = np.ones((len(prev_hist)+1,len(prev_hist)+1))
 
@@ -190,15 +168,14 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
             BP = BeliefPropagation(G)
             BP.calibrate()
 
-            #print(BP.map_query(G.get_variable_nodes(),show_progress=False))
             pre_result = (BP.map_query(G.get_variable_nodes(),show_progress=False))
-            result = list(pre_result.values())
+            pre_result2 = OrderedDict(sorted(pre_result.items()))
+            result = list(pre_result2.values())
             final_result = []
             for i in range(len(result)):
                 value = result[i] - 1
                 final_result.append(value)
             print(*final_result,sep = ' ')
-
 
 if __name__ == '__main__':
 
@@ -222,4 +199,3 @@ if __name__ == '__main__':
         sys.exit(1)
 
     SetUpFiles(image_directory_name)
-
