@@ -190,7 +190,14 @@ def SetUpFiles(directory_path = "", description_file = "bboxes.txt"):
             BP = BeliefPropagation(G)
             BP.calibrate()
 
-            print(BP.map_query(G.get_variable_nodes(),show_progress=False))
+            #print(BP.map_query(G.get_variable_nodes(),show_progress=False))
+            pre_result = (BP.map_query(G.get_variable_nodes(),show_progress=False))
+            result = list(pre_result.values())
+            final_result = []
+            for i in range(len(result)):
+                value = result[i] - 1
+                final_result.append(value)
+            print(*final_result,sep = ' ')
 
 
 if __name__ == '__main__':
