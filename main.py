@@ -9,6 +9,23 @@ from pgmpy.inference import BeliefPropagation
 from itertools import combinations
 from collections import OrderedDict
 
+# TODO Jakość kodu i raport (4/5)
+# TODO Raport w miarę kompletny i zrozumiały, jednak przydałby się jeszcze rysunek.
+# TODO Kod przejrzysty i dobrze udokumentowany.
+
+# TODO Skuteczność śledzenia 0.734 (4/5)
+# TODO [0.00, 0.0] - 0.0
+# TODO (0.0, 0.1) - 0.5
+# TODO [0.1, 0.2) - 1.0
+# TODO [0.2, 0.3) - 1.5
+# TODO [0.3, 0.4) - 2.0
+# TODO [0.4, 0.5) - 2.5
+# TODO [0.5, 0.6) - 3.0
+# TODO [0.6, 0.7) - 3.5
+# TODO [0.7, 0.8) - 4.0
+# TODO [0.8, 0.9) - 4.5
+# TODO [0.9, 1.0) - 5.0
+
 def CalcHistograms(objects):
 # This function calculate histograms from collected bounding boxes. In order to improve the results, histograms were
 # calculated for 3 channels separatelly than normalized.
@@ -86,6 +103,7 @@ def GetBBoxesFromFrames(frame,number,coordinates):
         heights = int(coordinates[i][3] * shrink)
 
         cropped = frame[y+heights:y+height-heights,x+widths:x+width-widths]
+        # TODO Czy to jest konieczne?
         cropped = cv2.resize(cropped,(360,360))
         objects.append(cropped)
 
